@@ -589,6 +589,54 @@ Tasks graph for: leaf1
 """)
     }
 
+    def "limits graph depth with --task-graph-limit"() {
+        given:
+        buildFile sampleGraph
+
+        when:
+        succeeds("root", "--task-graph", "--task-graph-limit=1")
+
+        then:
+        outputContains("""
+Tasks graph for: root
+\\--- :root (org.gradle.api.DefaultTask) (+)
+
+(+) - dependencies omitted (exceeded depth limit)
+""")
+        outputDoesNotContain("(*) - details omitted")
+    }
+
+    def "depth limit of 2 shows tasks two levels deep"() {
+        given:
+        buildFile sampleGraph
+
+        when:
+        succeeds("root", "--task-graph", "--task-graph-limit=2")
+
+        then:
+        outputContains("""
+Tasks graph for: root
+\\--- :root (org.gradle.api.DefaultTask)
+     +--- :leaf1 (org.gradle.api.DefaultTask)
+     \\--- :middle (org.gradle.api.DefaultTask) (+)
+
+(+) - dependencies omitted (exceeded depth limit)
+""")
+        outputDoesNotContain("(*) - details omitted")
+    }
+
+    def "--task-graph-limit without --task-graph has no effect"() {
+        given:
+        buildFile sampleGraph
+
+        when:
+        succeeds("root", "--task-graph-limit=1")
+
+        then:
+        outputDoesNotContain("Tasks graph for")
+        result.assertTaskExecuted(":root")
+    }
+
     def "dry-run has higher priority than task graph"() {
         given:
         buildFile sampleGraph
